@@ -144,7 +144,18 @@ build_and_flash_device() {
     log_success "Device $device_id processed successfully"
 }
 
-# Read INI-style config file
+# Get Klipper version
+get_klipper_version() {
+    if [[ -d "$KLIPPER_DIR/.git" ]]; then
+        cd "$KLIPPER_DIR"
+        local commit_hash=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        local commit_date=$(git log -1 --format=%cd --date=short 2>/dev/null || echo "unknown")
+        local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+        echo "$branch-$commit_hash ($commit_date)"
+    else
+        echo "unknown (not a git repository)"
+    fi
+}
 read_config() {
     local config_file="$1"
     local section="$2"
@@ -216,9 +227,18 @@ main() {
     echo "         Klipper Update Script"
     echo "=========================================="
     
+    # Get initial Klipper version
+    cd "$KLIPPER_DIR" 2>/dev/null || { log_error "Cannot access Klipper directory"; exit 1; }
+    local klipper_version_before=$(get_klipper_version)
+    log_info "Klipper version before update: $klipper_version_before"
+    
     check_dependencies
     stop_klipper
     update_klipper_source
+    
+    # Get updated Klipper version
+    local klipper_version_after=$(get_klipper_version)
+    log_info "Klipper version after update: $klipper_version_after"
     
     cd "$KLIPPER_DIR"
     process_devices
@@ -228,6 +248,16 @@ main() {
     echo ""
     echo "=========================================="
     log_success "Klipper update completed successfully!"
+    echo "=========================================="
+    log_info "Version Summary:"
+    log_info "  Before: $klipper_version_before"
+    log_info "  After:  $klipper_version_after"
+    
+    if [[ "$klipper_version_before" != "$klipper_version_after" ]]; then
+        log_success "Klipper was updated to a newer version!"
+    else
+        log_info "Klipper was already up to date"
+    fi
     echo "=========================================="
 }
 
