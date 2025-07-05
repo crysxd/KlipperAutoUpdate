@@ -3,10 +3,13 @@ set -e
 
 # Configuration
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-CONFIG_FILE="$SCRIPT_DIR/boards.conf"
 KLIPPER_DIR="$HOME/klipper"
 KATAPULT_DIR="$HOME/katapult"
 MAKE_JOBS=$(nproc)
+
+# Global variables set by printer data selection
+PRINTER_DATA_DIR=""
+CONFIG_FILE=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -43,6 +46,11 @@ check_dependencies() {
     
     if [[ ! -d "$KLIPPER_DIR" ]]; then
         log_error "Klipper directory not found: $KLIPPER_DIR"
+        exit 1
+    fi
+    
+    if [[ ! -d "$PRINTER_DATA_DIR/config" ]]; then
+        log_error "Printer config directory not found: $PRINTER_DATA_DIR/config"
         exit 1
     fi
     
@@ -144,7 +152,89 @@ build_and_flash_device() {
     log_success "Device $device_id processed successfully"
 }
 
-# Get Klipper version
+# Find and select printer data directory
+select_printer_data_dir() {
+    log_info "Searching for printer data directories..."
+    
+    # Find all printer_data directories
+    local printer_dirs=($(find "$HOME" -maxdepth 1 -type d -name "printer_data*" 2>/dev/null | sort))
+    
+    if [[ ${#printer_dirs[@]} -eq 0 ]]; then
+        log_error "No printer_data directories found in $HOME"
+        log_error "Expected to find directories like ~/printer_data or ~/printer_data_printer1"
+        exit 1
+    elif [[ ${#printer_dirs[@]} -eq 1 ]]; then
+        PRINTER_DATA_DIR="${printer_dirs[0]}"
+        log_info "Found single printer data directory: $PRINTER_DATA_DIR"
+    else
+        log_info "Found multiple printer data directories:"
+        for i in "${!printer_dirs[@]}"; do
+            echo "  $((i+1)). ${printer_dirs[i]}"
+        done
+        
+        while true; do
+            read -p "Select printer data directory (1-${#printer_dirs[@]}): " choice
+            if [[ "$choice" =~ ^[0-9]+$ ]] && [[ "$choice" -ge 1 ]] && [[ "$choice" -le ${#printer_dirs[@]} ]]; then
+                PRINTER_DATA_DIR="${printer_dirs[$((choice-1))]}"
+                log_info "Selected: $PRINTER_DATA_DIR"
+                break
+            else
+                log_error "Invalid choice. Please enter a number between 1 and ${#printer_dirs[@]}"
+            fi
+        done
+    fi
+    
+    # Set config file path
+    CONFIG_FILE="$PRINTER_DATA_DIR/config/klipper_auto_update.conf"
+    log_info "Configuration file will be: $CONFIG_FILE"
+}
+
+# Create config file if it doesn't exist
+create_config_if_missing() {
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        log_warning "Configuration file not found, creating default config..."
+        
+        # Ensure config directory exists
+        mkdir -p "$(dirname "$CONFIG_FILE")"
+        
+        # Create default config file
+        cat > "$CONFIG_FILE" << 'EOF'
+# Klipper Auto-Update Configuration
+# This file defines the devices to build and flash during Klipper updates
+# Format: [board <id>]
+# 
+# Edit this file through your web interface (Mainsail/Fluidd) in the config section
+
+[board rpi]
+description = "Raspberry Pi MCU"
+config_file = "rpi_klipper_makemenu.config"
+flash_method = "make"
+
+# Example additional boards (uncomment and modify as needed):
+#[board lis2dw]
+#description = "ADXL345/LIS2DW accelerometer"
+#config_file = "adxl_klipper_makemenu.config"
+#flash_method = "katapult"
+#flash_target = "-d /dev/serial/by-id/usb-Klipper_rp2040_45474E621A86D2CA-if00"
+
+#[board m4p]
+#description = "Manta M4P board"
+#config_file = "m4p_klipper_makemenu.config"
+#flash_method = "katapult"
+#flash_target = "-d /dev/serial/by-id/usb-Klipper_stm32g0b1xx_3200310019504B5735313920-if00"
+
+#[board sb2209]
+#description = "SB2209 toolhead board"
+#config_file = "sb2209_klipper_makemenu.config"
+#flash_method = "katapult"
+#flash_target = "-i can0 -u 9c50d1bd9a07"
+EOF
+        
+        log_success "Created default configuration file: $CONFIG_FILE"
+        log_info "You can now edit this file through your web interface or directly with a text editor"
+        log_info "Uncomment and modify the example boards as needed for your setup"
+    fi
+}
 get_klipper_version() {
     if [[ -d "$KLIPPER_DIR/.git" ]]; then
         cd "$KLIPPER_DIR"
@@ -226,6 +316,12 @@ main() {
     echo "         Klipper Update Script"
     echo "=========================================="
     
+    # First, find and select printer data directory
+    select_printer_data_dir
+    
+    # Create config file if it doesn't exist
+    create_config_if_missing
+    
     # Get initial Klipper version
     cd "$KLIPPER_DIR" 2>/dev/null || { log_error "Cannot access Klipper directory"; exit 1; }
     local klipper_version_before=$(get_klipper_version)
@@ -257,6 +353,9 @@ main() {
     else
         log_info "Klipper was already up to date"
     fi
+    
+    log_info "Configuration file: $CONFIG_FILE"
+    log_info "Edit via web interface or directly to modify board settings"
     echo "=========================================="
 }
 

@@ -23,12 +23,12 @@ https://www.youtube.com/watch?v=tne5wVYEaQs&list=PL1fjlNqlUKnUjV9GKHGI1oXRcxDsKK
   - `q` and save
   - Klipper now created a `.config` file with the values you entered
   - `cp ~/klipper/.config ~/klipper_auto_update/{board_name}.config` to copy the file and save it for later. Replace `{board_name}` to a unique name without spaces, e.g. `m4p.config`
+  - As a side note, if you have the same board type twice, you only need to do this once
 - You now have config files for each board in your `~/klipper_auto_update` directory
 - Now we create a config file for the script
-  - Optional: You can delete the sample config with `rm ~/klipper_auto_update/boards.conf`
-  - `nano ~/klipper_auto_update/boards.conf` to open the nano code editor
-  - You can create the config file on your PC and then copy paste it into nano if you deleted the sample config before, you can use `ctrl+K` to delete a line and the whole file quickly
-  - Press `ctrl+O` to save then `ctrl+X` to exit
+  - Open your Klipper webinterface and go to the config section
+  - Create a new config file called `klipper_auto_update.conf`, more about the config below and an example file can be found in the git above
+  - List all your boards here and save.
 - Everything is ready! You can run `~/klipper_auto_update/klipper_auto_update.sh` :)
 
 # Config
