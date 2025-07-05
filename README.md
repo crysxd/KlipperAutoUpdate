@@ -6,13 +6,16 @@ Requirement: Your boards are initially manually flashed with Katapult and Klippe
 Katapult is a bootloader that allows the easy flashing of your board and is a key part of this automation. Start by following the [Esoterical guide](https://canbus.esoterical.online/mainboard_flashing.html) to flash all your Klpper boards with Katapult and Klipper. The guide is specific for Canbus, but you can 1:1 apply it for USB connected boards as well, 
 just make sure to use "Communication interface: USB" when building Klipper with `make menuconfig` and not "Communication interface: Canbus"
 
-I create the script with setup here, but an earlier itereation
+I flash all my boards in this stream:
+https://www.youtube.com/watch?v=tLyi-2RE09s&list=PL1fjlNqlUKnUjV9GKHGI1oXRcxDsKKw-X&index=32
+
+I create the script with setup here, but an earlier itereation:
 https://www.youtube.com/watch?v=tne5wVYEaQs&list=PL1fjlNqlUKnUjV9GKHGI1oXRcxDsKKw-X&index=33
 
 # Setup
 
 - Login via SSH to your machine
-- `cd ~ && git clone git@github.com:crysxd/KlipperAutoUpdate.git klipper_auto_update` to create a new folder
+- `cd ~ && git clone https://github.com/crysxd/KlipperAutoUpdate.git klipper_auto_update` to create a new folder
 - For each of your boards:
   - `cd ~/klipper`
   - `make clear && make menuconfig`
@@ -26,7 +29,7 @@ https://www.youtube.com/watch?v=tne5wVYEaQs&list=PL1fjlNqlUKnUjV9GKHGI1oXRcxDsKK
   - `nano ~/klipper_auto_update/boards.yaml` to open the nano code editor
   - You can create the config file on your PC and then copy paste it into nano if you deleted the sample config before, you can use `ctrl+K` to delete a line and the whole file quickly
   - Press `ctrl+O` to save then `ctrl+X` to exit
-- Everything is ready! You can run `~/klipper_auto_update/update.sh` :)
+- Everything is ready! You can run `~/klipper_auto_update/klipper_auto_update.sh` :)
 
 # Config
 The `boards.yaml` config contains all your boards, add one entry for each baord.
