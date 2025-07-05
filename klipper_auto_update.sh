@@ -356,6 +356,9 @@ main() {
     
     log_info "Configuration file: $CONFIG_FILE"
     log_info "Edit via web interface or directly to modify board settings"
+    echo ""
+    log_warning "Sometimes a reboot is required for boards to come back online after flashing."
+    log_warning "Run 'sudo reboot now' if Klipper does not come back online after flashing."
     echo "=========================================="
 }
 
