@@ -50,10 +50,14 @@ Your boards must initially be manually flashed with Katapult and Klipper once. K
 
 ## Config
 
-The `klipper_auto_update.conf` config contains all your boards. Add one entry for each board. To flash, you need to provide the correct flash target:
+The `klipper_auto_update.conf` config contains all your boards. Add one entry for each board. To flash, you need to provide the correct `flash_mode`:
+
+- **Raspberry Pi:** For the "host MCU," use `make`.
+- **All other MCUs:** For anything else use `katapult`
+
+For `katapult` you also need to provide a `flash_target`:
 
 - **CAN bus:** Provide `-i can0 -u {can uuid}` and replace `{can uuid}` with the correct UUID for the device, e.g., `9c50d1bd9a07`.
 - **USB:** Provide `-d /dev/serial/by-id/{usb device}` and replace `{usb device}` with the correct path, e.g., `usb-Klipper_rp2040_45474E621A86D2CA-if00`.
-- **Raspberry Pi:** For the "host MCU," use `make`.
 
 The config files linked for each board must correspond to the files you create with `make menuconfig` and then `cp`
