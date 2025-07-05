@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-CONFIG_FILE="$SCRIPT_DIR/klipper_devices.conf"
+CONFIG_FILE="$SCRIPT_DIR/boards.conf"
 KLIPPER_DIR="$HOME/klipper"
 KATAPULT_DIR="$HOME/katapult"
 MAKE_JOBS=$(nproc)
