@@ -3,9 +3,10 @@ set -e
 
 # Configuration
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-CONFIG_FILE="$SCRIPT_DIR/boards.conf"
+CONFIG_FILE="$SCRIPT_DIR/klipper_devices.conf"
 KLIPPER_DIR="$HOME/klipper"
 KATAPULT_DIR="$HOME/katapult"
+MAKE_JOBS=$(nproc)
 
 # Colors for output
 RED='\033[0;31m'
@@ -103,8 +104,8 @@ build_and_flash_device() {
         return 1
     fi
     
-    log_info "Building Klipper firmware..."
-    if make KCONFIG_CONFIG="$full_config_path"; then
+    log_info "Building Klipper firmware (using $MAKE_JOBS parallel jobs)..."
+    if make -j"$MAKE_JOBS" KCONFIG_CONFIG="$full_config_path"; then
         log_success "Build completed for $device_id"
     else
         log_error "Build failed for $device_id"
