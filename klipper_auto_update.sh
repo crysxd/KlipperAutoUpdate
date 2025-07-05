@@ -148,10 +148,9 @@ build_and_flash_device() {
 get_klipper_version() {
     if [[ -d "$KLIPPER_DIR/.git" ]]; then
         cd "$KLIPPER_DIR"
-        local commit_hash=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-        local commit_date=$(git log -1 --format=%cd --date=short 2>/dev/null || echo "unknown")
-        local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-        echo "$branch-$commit_hash ($commit_date)"
+        # Get version in Klipper's format: tag-commits_since_tag-commit_hash
+        local version=$(git describe --always --tags --long 2>/dev/null || echo "unknown")
+        echo "$version"
     else
         echo "unknown (not a git repository)"
     fi
