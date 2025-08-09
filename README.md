@@ -94,7 +94,7 @@ katapult_can_uuid = "9c50d1bd9a07"
 ##### USB/CAN Bridge Flashing
 For mainboards that act as USB/CAN bridges, use both bridge parameters. The script will automatically:
 1. Put the device into boot mode via CAN
-2. Flash via USB to avoid breaking the bridge connection
+2. Flash via USB to avoid breaking the bridge connection. You can get this ID by running `~/katapult/scripts/flashtool.py -i can0 -u c1980e2023a1 -r; ls /dev/serial/by-id/` (replace `-u` with your uuid) and then looking for the katapult device. Please note after this you need to power down the printer or press the reset button on the board to reset the state.
 
 ```ini
 [board m4p]
