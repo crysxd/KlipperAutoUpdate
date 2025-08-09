@@ -98,8 +98,8 @@ For mainboards that act as USB/CAN bridges, use both bridge parameters. The scri
 
 ```ini
 [board m4p]
-description = "Manta M4P board with USB/CAN bridge"
-config_file = "m4p.config"
+description = "Manta M8P board with USB/CAN bridge"
+config_file = "m8p.config"
 flash_method = "katapult"
 katapult_can_bridge_usb_device = "/dev/serial/by-id/usb-katapult_stm32h723xx_140028000951313339373836-if00"
 katapult_can_bridge_can_uuid = "c1980e2023a1"
