@@ -40,7 +40,10 @@ Your boards must initially be manually flashed with Katapult and Klipper once. K
 
 4. **Create a config file for the script:**
    - Open your Klipper web interface and go to the config section.
-   - Create a new config file called `klipper_auto_update.conf`. 
+   - Create a new config file called `klipper_auto_update.conf` or run the script once to create a default:
+     ```bash
+     ~/klipper_auto_update/klipper_auto_update.sh
+     ```
    - List all your boards here and save.
    - The script will create a default config file if none exists to help you get started.
 

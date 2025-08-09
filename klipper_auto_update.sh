@@ -336,8 +336,17 @@ flash_method = "make"
 EOF
         
         log_success "Created default configuration file: $CONFIG_FILE"
-        log_info "You can now edit this file through your web interface or directly with a text editor"
-        log_info "Uncomment and modify the example boards as needed for your setup"
+        echo ""
+        log_info "NEXT STEPS:"
+        log_info "1. Edit the configuration file: $CONFIG_FILE"
+        log_info "   - You can edit it through your web interface (Mainsail/Fluidd) in the config section"
+        log_info "   - Or edit directly with: nano $CONFIG_FILE"
+        log_info "2. Uncomment and configure your boards as needed"
+        log_info "3. Make sure your .config files are in the script directory: $SCRIPT_DIR"
+        log_info "4. Run the script again to perform the update"
+        echo ""
+        log_warning "Script execution stopped - please configure your boards first!"
+        exit 0
     fi
 }
 
