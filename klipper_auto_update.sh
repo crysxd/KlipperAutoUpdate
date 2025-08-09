@@ -81,6 +81,85 @@ update_klipper_source() {
     fi
 }
 
+# Flash via Katapult with CAN bridge support
+flash_katapult() {
+    local katapult_usb_device="$1"
+    local katapult_can_uuid="$2"
+    local katapult_can_bridge_usb_device="$3"
+    local katapult_can_bridge_can_uuid="$4"
+    local device_id="$5"
+    
+    if [[ ! -d "$KATAPULT_DIR" ]]; then
+        log_error "Katapult directory not found: $KATAPULT_DIR"
+        return 1
+    fi
+    
+    # Check if CAN bridge is configured
+    if [[ -n "$katapult_can_bridge_usb_device" && -n "$katapult_can_bridge_can_uuid" ]]; then
+        log_info "USB/CAN bridge detected - using two-step flashing process"
+        
+        # Step 1: Put the device into boot mode via CAN
+        log_info "Step 1: Putting device into Katapult boot mode..."
+        local reset_cmd="python3 $KATAPULT_DIR/scripts/flashtool.py -i can0 -u $katapult_can_bridge_can_uuid -r"
+        log_info "Executing: $reset_cmd"
+        
+        if eval "$reset_cmd"; then
+            log_success "Device put into boot mode"
+        else
+            log_error "Failed to put device into boot mode"
+            return 1
+        fi
+        
+        # Wait a moment for the device to enter boot mode
+        log_info "Waiting for device to enter boot mode..."
+        sleep 3
+        
+        # Step 2: Flash via USB using the bridge USB device
+        log_info "Step 2: Flashing firmware via USB..."
+        local flash_cmd="python3 $KATAPULT_DIR/scripts/flashtool.py -f $KLIPPER_DIR/out/klipper.bin -d $katapult_can_bridge_usb_device"
+        log_info "Executing: $flash_cmd"
+        
+        if eval "$flash_cmd"; then
+            log_success "Firmware flashed successfully via USB"
+        else
+            log_error "Failed to flash firmware via USB"
+            return 1
+        fi
+        
+    elif [[ -n "$katapult_usb_device" ]]; then
+        # Direct USB flashing
+        log_info "Direct USB flashing..."
+        local flash_cmd="python3 $KATAPULT_DIR/scripts/flashtool.py -f $KLIPPER_DIR/out/klipper.bin -d $katapult_usb_device"
+        log_info "Executing: $flash_cmd"
+        
+        if eval "$flash_cmd"; then
+            log_success "Firmware flashed successfully via USB"
+        else
+            log_error "Failed to flash firmware via USB"
+            return 1
+        fi
+        
+    elif [[ -n "$katapult_can_uuid" ]]; then
+        # Direct CAN flashing
+        log_info "Direct CAN flashing..."
+        local flash_cmd="python3 $KATAPULT_DIR/scripts/flashtool.py -f $KLIPPER_DIR/out/klipper.bin -i can0 -u $katapult_can_uuid"
+        log_info "Executing: $flash_cmd"
+        
+        if eval "$flash_cmd"; then
+            log_success "Firmware flashed successfully via CAN"
+        else
+            log_error "Failed to flash firmware via CAN"
+            return 1
+        fi
+        
+    else
+        log_error "No valid Katapult flashing parameters found for device $device_id. Either katapult_usb_device, katapult_can_uuid, or both katapult_can_bridge_usb_device and katapult_can_bridge_can_uuid must be specified."
+        return 1
+    fi
+    
+    return 0
+}
+
 # Build and flash a single device
 build_and_flash_device() {
     local device_id="$1"
@@ -88,6 +167,10 @@ build_and_flash_device() {
     local flash_method="$3"
     local flash_target="$4"
     local description="$5"
+    local katapult_usb_device="$6"
+    local katapult_can_uuid="$7"
+    local katapult_can_bridge_usb_device="$8"
+    local katapult_can_bridge_can_uuid="$9"
     
     echo ""
     echo "=========================================="
@@ -130,13 +213,16 @@ build_and_flash_device() {
             return 1
         fi
     elif [[ "$flash_method" == "katapult" ]]; then
-        if [[ ! -d "$KATAPULT_DIR" ]]; then
-            log_error "Katapult directory not found: $KATAPULT_DIR"
+        if flash_katapult "$katapult_usb_device" "$katapult_can_uuid" "$katapult_can_bridge_usb_device" "$katapult_can_bridge_can_uuid" "$device_id"; then
+            log_success "Flashing completed for $device_id"
+        else
+            log_error "Flashing failed for $device_id"
             return 1
         fi
-        
+    elif [[ "$flash_method" == "katapult_legacy" ]]; then
+        # Legacy support for old flash_target parameter
         local flash_cmd="python3 $KATAPULT_DIR/scripts/flashtool.py -f $KLIPPER_DIR/out/klipper.bin $flash_target"
-        log_info "Executing: $flash_cmd"
+        log_info "Executing legacy command: $flash_cmd"
         
         if eval "$flash_cmd"; then
             log_success "Flashing completed for $device_id"
@@ -210,24 +296,43 @@ description = "Raspberry Pi MCU"
 config_file = "rpi_klipper_makemenu.config"
 flash_method = "make"
 
-# Example additional boards (uncomment and modify as needed):
+# Example boards with new Katapult parameters:
+
+# Direct USB flashing
 #[board lis2dw]
 #description = "ADXL345/LIS2DW accelerometer"
 #config_file = "adxl_klipper_makemenu.config"
 #flash_method = "katapult"
-#flash_target = "-d /dev/serial/by-id/usb-Klipper_rp2040_45474E621A86D2CA-if00"
+#katapult_usb_device = "/dev/serial/by-id/usb-Klipper_rp2040_45474E621A86D2CA-if00"
 
-#[board m4p]
-#description = "Manta M4P board"
-#config_file = "m4p_klipper_makemenu.config"
-#flash_method = "katapult"
-#flash_target = "-d /dev/serial/by-id/usb-Klipper_stm32g0b1xx_3200310019504B5735313920-if00"
-
+# Direct CAN flashing
 #[board sb2209]
 #description = "SB2209 toolhead board"
 #config_file = "sb2209_klipper_makemenu.config"
 #flash_method = "katapult"
-#flash_target = "-i can0 -u 9c50d1bd9a07"
+#katapult_can_uuid = "9c50d1bd9a07"
+
+# USB/CAN Bridge flashing (mainboard with USB/CAN bridge)
+#[board m4p]
+#description = "Manta M4P board with USB/CAN bridge"
+#config_file = "m4p_klipper_makemenu.config"
+#flash_method = "katapult"
+#katapult_can_bridge_usb_device = "/dev/serial/by-id/usb-katapult_stm32h723xx_140028000951313339373836-if00"
+#katapult_can_bridge_can_uuid = "c1980e2023a1"
+
+# Legacy format (still supported but deprecated)
+#[board legacy_board]
+#description = "Legacy configuration format"
+#config_file = "legacy_klipper_makemenu.config"
+#flash_method = "katapult_legacy"
+#flash_target = "-d /dev/serial/by-id/usb-Klipper_stm32g0b1xx_3200310019504B5735313920-if00"
+
+# Configuration Notes:
+# - For direct USB flashing: Use katapult_usb_device
+# - For direct CAN flashing: Use katapult_can_uuid  
+# - For USB/CAN bridge: Use both katapult_can_bridge_usb_device and katapult_can_bridge_can_uuid
+# - The script will automatically detect which method to use based on available parameters
+# - To configure your board: make clean && make menuconfig
 EOF
         
         log_success "Created default configuration file: $CONFIG_FILE"
@@ -235,6 +340,7 @@ EOF
         log_info "Uncomment and modify the example boards as needed for your setup"
     fi
 }
+
 get_klipper_version() {
     if [[ -d "$KLIPPER_DIR/.git" ]]; then
         cd "$KLIPPER_DIR"
@@ -245,6 +351,7 @@ get_klipper_version() {
         echo "unknown (not a git repository)"
     fi
 }
+
 read_config() {
     local config_file="$1"
     local section="$2"
@@ -283,8 +390,13 @@ process_devices() {
         local flash_method=$(read_config "$CONFIG_FILE" "$section" "flash_method")
         local flash_target=$(read_config "$CONFIG_FILE" "$section" "flash_target")
         local description=$(read_config "$CONFIG_FILE" "$section" "description")
+        local katapult_usb_device=$(read_config "$CONFIG_FILE" "$section" "katapult_usb_device")
+        local katapult_can_uuid=$(read_config "$CONFIG_FILE" "$section" "katapult_can_uuid")
+        local katapult_can_bridge_usb_device=$(read_config "$CONFIG_FILE" "$section" "katapult_can_bridge_usb_device")
+        local katapult_can_bridge_can_uuid=$(read_config "$CONFIG_FILE" "$section" "katapult_can_bridge_can_uuid")
         
-        if build_and_flash_device "$board_id" "$config_file" "$flash_method" "$flash_target" "$description"; then
+        if build_and_flash_device "$board_id" "$config_file" "$flash_method" "$flash_target" "$description" \
+                                  "$katapult_usb_device" "$katapult_can_uuid" "$katapult_can_bridge_usb_device" "$katapult_can_bridge_can_uuid"; then
             log_success "Successfully processed $board_id"
         else
             log_error "Failed to process $board_id"
